@@ -10,7 +10,7 @@ using namespace std;
 struct Quest {
     string description;
     bool completed;
-    int difficulty; // Уровень сложности квеста
+    int difficulty; 
 
     Quest(string desc, int diff) : description(desc), completed(false), difficulty(diff) {}
 };
@@ -37,6 +37,14 @@ struct Resource {
     Resource(string n, int q) : name(n), quantity(q) {}
 };
 
+struct Item {
+    string name;
+    string type; 
+    int effect; 
+
+    Item(string n, string t, int e) : name(n), type(t), effect(e) {}
+};
+
 struct GameState {
     int level;
     int score;
@@ -45,7 +53,8 @@ struct GameState {
     string currentWorld;
     vector<NPC> npcs;
     vector<Resource> resources;
-    int experience; // Опыт игрока
+    vector<Item> inventory; 
+    int experience; 
 
     void save() {
         ofstream outFile("save.txt");
@@ -59,6 +68,10 @@ struct GameState {
             outFile << resources.size() << endl;
             for (const auto& resource : resources) {
                 outFile << resource.name << " " << resource.quantity << endl;
+            }
+            outFile << inventory.size() << endl; 
+            for (const auto& item : inventory) {
+                outFile << item.name << " " << item.type << " " << item.effect << endl;
             }
             outFile.close();
         }
@@ -85,6 +98,15 @@ struct GameState {
                 inFile >> resourceName >> quantity;
                 resources.emplace_back(resourceName, quantity);
             }
+            int itemCount;
+            inFile >> itemCount; 
+            inventory.clear();
+            for (int i = 0; i < itemCount; ++i) {
+                string itemName, itemType;
+                int effect;
+                inFile >> itemName >> itemType >> effect;
+                inventory.emplace_back(itemName, itemType, effect);
+            }
             inFile.close();
         }
         else {
@@ -106,10 +128,15 @@ struct GameState {
         resources.push_back(resource);
     }
 
+    void addItem(const Item& item) {
+        inventory.push_back(item);
+        cout << "Вы получили предмет: " << item.name << "!" << endl;
+    }
+
     void levelUp() {
-        if (experience >= level * 100) { // Уровень сложности для повышения уровня
+        if (experience >= level * 100) { 
             level++;
-            experience = 0; // Сброс опыта
+            experience = 0; 
             cout << "Поздравляем! Вы достигли уровня " << level << "!" << endl;
         }
     }
@@ -119,10 +146,10 @@ void completeQuest(GameState& state, NPC& npc) {
     for (auto& quest : npc.quests) {
         if (!quest.completed) {
             quest.completed = true;
-            state.score += 20 * quest.difficulty; // Очки зависят от сложности квеста
-            state.experience += 50 * quest.difficulty; // Опыт зависит от сложности квеста
+            state.score += 20 * quest.difficulty; 
+            state.experience += 50 * quest.difficulty; 
             cout << "Вы выполнили квест: " << quest.description << "!" << endl;
-            state.levelUp(); // Проверка на повышение уровня
+            state.levelUp(); 
             return;
         }
     }
@@ -150,7 +177,7 @@ void interactWithNPC(GameState& state) {
 
 void battle(GameState& state, Enemy& enemy) {
     cout << "Вы вступили в бой с " << enemy.name << "!" << endl;
-    int playerHealth = 100; // Здоровье игрока
+    int playerHealth = 100; 
 
     while (enemy.health > 0 && playerHealth > 0) {
         cout << "Ваши очки здоровья: " << playerHealth << endl;
@@ -161,20 +188,20 @@ void battle(GameState& state, Enemy& enemy) {
         cin >> choice;
 
         if (choice == 1) {
-            int playerDamage = rand() % 20 + 10; // Урон игрока
+            int playerDamage = rand() % 20 + 10; 
             enemy.health -= playerDamage;
             cout << "Вы нанесли " << playerDamage << " урона " << enemy.name << "!" << endl;
 
             if (enemy.health > 0) {
-                int enemyDamage = rand() % enemy.attack + 5; // Случайный урон врага
+                int enemyDamage = rand() % enemy.attack + 5;
                 playerHealth -= enemyDamage;
                 cout << enemy.name << " атакует вас и наносит " << enemyDamage << " урона!" << endl;
             }
             else {
                 cout << "Вы победили " << enemy.name << "!" << endl;
-                state.score += 50; // Награда за победу
-                state.experience += 30; // Опыт за победу
-                state.levelUp(); // Проверка на повышение уровня
+                state.score += 50; 
+                state.experience += 30; 
+                state.levelUp(); 
             }
         }
         else if (choice == 2) {
@@ -188,16 +215,25 @@ void battle(GameState& state, Enemy& enemy) {
 
     if (playerHealth <= 0) {
         cout << "Вы погибли в бою." << endl;
-        exit(0); // Завершение игры при смерти игрока
+        exit(0); 
     }
 }
 
 void collectResources(GameState& state) {
     cout << "Вы собираете ресурсы в " << state.currentWorld << "!" << endl;
-    int resourceFound = rand() % 3 + 1; // Случайное количество найденных ресурсов
+    int resourceFound = rand() % 3 + 1; 
     for (int i = 0; i < resourceFound; ++i) {
-        string resourceName = "Ресурс_" + to_string(rand() % 100); // Генерация уникального имени ресурса
-        int quantity = rand() % 5 + 1; // Случайное количество
+        
+        string resourceName;
+        int resourceType = rand() % 5; 
+        switch (resourceType) {
+        case 0: resourceName = "Светящийся цветок"; break;
+        case 1: resourceName = "Кристалл времени"; break;
+        case 2: resourceName = "Листья древнего дерева"; break;
+        case 3: resourceName = "Сердце стихий"; break;
+        case 4: resourceName = "Золотой самородок"; break;
+        }
+        int quantity = rand() % 5 + 1;
         state.addResource(Resource(resourceName, quantity));
         cout << "Вы нашли " << quantity << " " << resourceName << "(ов)." << endl;
     }
@@ -236,7 +272,7 @@ void mainbody(GameState& state) {
         interactWithNPC(state);
         break;
     case 4: {
-        Enemy enemy("Враг", 100, 15); // Создание врага с 100 здоровья и 15 атаки
+        Enemy enemy("Враг", 100, 15); 
         battle(state, enemy);
         break;
     }
@@ -263,9 +299,8 @@ void startGame(GameState& state) {
     state.score = 0;
     state.age = 18;
     state.currentWorld = "Мир 1";
-    state.experience = 0; // Инициализация опыта
+    state.experience = 0; 
 
-    // Добавление NPC с квестами
     NPC npc1("Гарри");
     npc1.quests.push_back(Quest("Принести 5 яблок", 1));
     npc1.quests.push_back(Quest("Убить 3 врага", 2));
@@ -338,5 +373,6 @@ int main() {
 
     return 0;
 }
+
 
 
